@@ -5,44 +5,33 @@ pipeline {
   stages {
     stage('Say Hello') {
       steps {
+        echo "Hello ${params.Name}!"
         sh 'java -version'
         echo "${TEST_USER_USR}"
         echo "${TEST_USER_PSW}"
       }
     }
-    stage('Get Kernel') {
-      steps {
-        script {
-          try {
-            KERNEL_VERSION = sh (script: "uname -r", returnStdout: true)
-          } catch(err) {
-            echo "CAUGHT ERROR: ${err}"
-            throw err
+    stage('Testing') {
+      failFast true
+      parallel {
+        stage('Java 8') {
+          agent {
+            label 'jdk8'
+          }
+          steps {
+            sh 'java -version'
+            sleep(time: 10, unit: 'SECONDS')
           }
         }
-
-      }
-    }
-    stage('Say Kernel') {
-      steps {
-        echo "${KERNEL_VERSION}"
-      }
-    }
-    stage('Deploy') {
-      options {
-        timeout(time: 30, unit: 'SECONDS')
-      }
-      input {
-        message 'Which Version?'
-        id 'Deploy'
-        parameters {
-          choice(name: 'APP_VERSION', choices: '''v1.1
-v1.2
-v1.3''', description: 'What to deploy?')
+        stage('Java 9') {
+          agent {
+            label 'jdk9'
+          }
+          steps {
+            sh 'java -version'
+            sleep(time: 20, unit: 'SECONDS')
+          }
         }
-      }
-      steps {
-        echo "Deploying ${APP_VERSION}."
       }
     }
   }
@@ -56,5 +45,8 @@ v1.3''', description: 'What to deploy?')
 
     }
 
+  }
+  parameters {
+    string(name: 'Name', defaultValue: 'whoever you are', description: 'Who should I say hi to?')
   }
 }
